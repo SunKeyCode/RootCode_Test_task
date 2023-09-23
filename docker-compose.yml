@@ -1,0 +1,42 @@
+version: '3.9'
+
+services:
+
+  postgres:
+    image: postgres
+    container_name: postgres_db
+    environment:
+      POSTGRES_USER: ${DB_USER}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME}
+      PGDATA: "/var/lib/postgresql/data/pgdata"
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./postgres_db/:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USER} -d ${DB_NAME}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+      start_period: 1s
+    restart: unless-stopped
+#
+#  app:
+#    build:
+#      context: backend
+#    container_name: fastapi_app
+#    stop_signal: SIGKILL
+#    environment:
+#      DEBUG: false
+#      WORKERS: ${ASGI_SERVER_WORKERS}
+#    ports:
+#      - "8000:8000"
+#    volumes:
+#      - ./static/:/static
+#      - ./backend/app:/backend/app
+#      - ./.env:/.env
+#    depends_on:
+#      postgres:
+#        condition: service_healthy
+#    restart: unless-stopped
