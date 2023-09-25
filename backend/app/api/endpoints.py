@@ -14,7 +14,7 @@ from db.crud.file_version import FileVersionDBManager
 from db.crud.project_data import ProjectDataDBManger
 from db.session import get_db_session
 from models.models import FileVersion, ProjectData
-from schemas.project_data import ReportModel
+from schemas.report import ReportModel
 
 router = APIRouter()
 
@@ -59,7 +59,7 @@ async def unload_file(
 
     return FileResponse(
         file_name,
-        filename="result.xlsx",
+        filename=f"result_version_{version_id}.xlsx",
         media_type="multipart/form-data",
     )
 

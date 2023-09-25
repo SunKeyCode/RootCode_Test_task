@@ -5,7 +5,6 @@ from logging.config import dictConfig
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
 from configs.app_config import DEBUG, DB_URL
-from configs.logger_config import LOGGER_CONF
 
 # logger = getLogger("main.session")
 # dictConfig(LOGGER_CONF)

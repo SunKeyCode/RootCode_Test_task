@@ -15,11 +15,11 @@ def ignore_nan(worksheet, row, col, number, format=None):
 
 
 def write_excel(data_to_write: dict):
-    unload_path = FILES_DIR / "unloaded"
+    unload_path = FILES_DIR / "downloaded"
     if not os.path.exists(unload_path):
         os.makedirs(unload_path)
 
-    workbook = xlsxwriter.Workbook(unload_path / "test.xlsx")
+    workbook = xlsxwriter.Workbook(unload_path / "temp.xlsx")
     worksheet = workbook.add_worksheet("data")
     worksheet.add_write_handler(float, ignore_nan)
 
@@ -79,4 +79,4 @@ def write_excel(data_to_write: dict):
 
     workbook.close()
 
-    return unload_path / "test.xlsx"
+    return unload_path / "temp.xlsx"
