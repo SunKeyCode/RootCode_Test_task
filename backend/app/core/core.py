@@ -1,4 +1,5 @@
 import re
+import math
 
 from datetime import datetime
 import pandas as pd
@@ -75,8 +76,8 @@ class PandasDataLoader:
                 "data": [
                     (
                         self._dates[int((row_index - 2) / 2)],
-                        row[row_index],
-                        row[row_index + 1],
+                        None if math.isnan(row[row_index]) else row[row_index],
+                        None if math.isnan(row[row_index + 1]) else row[row_index + 1],
                     )
                     for row_index in range(2, len(row), 2)
                 ],
