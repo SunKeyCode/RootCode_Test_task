@@ -5,28 +5,7 @@ from datetime import datetime
 import pandas as pd
 
 
-# excel_data = pd.read_excel("example.xlsx")
-# dates = [date.date() for date in excel_data.columns if isinstance(date, datetime)]
-
-# print(excel_data.head())
-#
-# for _, data in excel_data[1:].T.items():
-#     row = data.values.tolist()
-#     row_dict = {
-#         "code": row[0],
-#         "name": row[1],
-#         "data": [
-#             (
-#                 dates[int((row_index - 2) / 2)],
-#                 row[row_index],
-#                 row[row_index + 1],
-#             )
-#             for row_index in range(2, len(row), 2)
-#         ],
-#     }
-#     print(row_dict)
-
-def covert_date(value) -> datetime.date:
+def convert_date(value) -> datetime.date:
     if isinstance(value, datetime):
         return value.date()
 
@@ -47,7 +26,7 @@ class PandasDataLoader:
     def _set_dates(self):
         dates = []
         for column in self._loaded_data.columns:
-            converted_data = covert_date(column)
+            converted_data = convert_date(column)
             if converted_data is not None:
                 dates.append(converted_data)
         return dates
@@ -67,7 +46,6 @@ class PandasDataLoader:
         ].values
 
     def get_items_for_db(self):
-        print(self.dates)
         for _, data in self._loaded_data[1:].T.items():
             row = data.values.tolist()
             row_dict = {
@@ -83,8 +61,3 @@ class PandasDataLoader:
                 ],
             }
             yield row_dict
-
-
-class FileDataManager:
-    def __init__(self, data_loader):
-        pass

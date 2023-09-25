@@ -4,18 +4,17 @@ from fastapi import APIRouter, Depends, UploadFile, Query
 from fastapi.responses import FileResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from starlette import status
+from starlette.exceptions import HTTPException
 
-from core.core import PandasDataLoader
-from core.file_unload import select_file_data, create_file_from_data, write_exel
-from core.projects import (
-    check_projects,
-    create_file_version,
-    create_projects,
-    create_product_data_items,
-)
-from core.report import report_query
-from core.utils.file_handlers import save_file_to_filesystem
+from core.excel.reader import PandasDataLoader
+from core.excel.writer import write_excel
+from core.projects import check_and_create_projects
+from core.utils.utils import save_file_to_filesystem, convert_orm_data_to_dict
+from db.crud.file_version import FileVersionDBManager
+from db.crud.project_data import ProjectDataDBManger
 from db.session import get_db_session
+from models.models import FileVersion, ProjectData
+from schemas.project_data import ReportModel
 
 router = APIRouter()
 
@@ -30,31 +29,34 @@ async def upload_file(
         content=await file.read(),
     )
     loader = PandasDataLoader(full_path)
-    proj = await check_projects(session=session, codes=loader.codes)
-    diff = set(loader.codes).difference(set(proj))
-    proj_to_create = loader.get_projects_info_by_codes(list(diff))
-    await create_projects(session, proj_to_create)
-    file_version = await create_file_version(
-        session=session, filename=full_path.as_posix()
+    await check_and_create_projects(session, loader)
+
+    file_version: FileVersion = await FileVersionDBManager(session=session).create(
+        filename=full_path.as_posix()
     )
-    await create_product_data_items(session, loader.get_items_for_db(), file_version.id)
+    await ProjectDataDBManger(session).bulk_create(
+        loader.get_items_for_db(), file_version.id
+    )
     return {
-        "filename": full_path,
-        "dates": loader.dates,
-        "codes": loader.codes,
-        "proj": proj,
+        "result": True,
         "file_version": file_version.id,
     }
 
 
-@router.get("/unload/{version_id}")
+@router.get("/download/{version_id}")
 async def unload_file(
     version_id: int,
     session: AsyncSession = Depends(get_db_session),
 ):
-    data = await select_file_data(session, version_id)
-    to_excel = create_file_from_data(data)
-    file_name = write_exel(to_excel)
+    data: list[ProjectData] = await ProjectDataDBManger(session).get_by_file_version(
+        version_id
+    )
+    if not data:
+        raise HTTPException(status_code=404, detail="file version not found")
+
+    to_excel: dict = convert_orm_data_to_dict(data)
+    file_name = write_excel(to_excel)
+
     return FileResponse(
         file_name,
         filename="result.xlsx",
@@ -62,27 +64,19 @@ async def unload_file(
     )
 
 
-@router.get("/report")
+@router.get(
+    "/report", response_model=list[ReportModel], response_model_exclude_unset=True
+)
 async def get_report(
     year: int | None = None,
     version: int | None = None,
     type_value: Annotated[str | None, Query(pattern="^[pf]$")] = None,
     session: AsyncSession = Depends(get_db_session),
 ):
-    result = await report_query(
-        session,
+    result = await ProjectDataDBManger(session).get_report_grouped_by_date(
         year=year,
         version=version,
         type_value=type_value,
     )
-    res = []
-    for item in result:
-        item_dict = {
-            "date": item.date,
-            "plan": item.plan,
-            "fact": item.fact,
-        }
-        res.append(item_dict)
-    return {
-        "result": res,
-    }
+
+    return result
